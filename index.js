@@ -1,5 +1,7 @@
-import { readdirSync, statSync, mkdirSync, existsSync, writeFileSync } from "fs";
+import { readdirSync, statSync, mkdirSync, existsSync, writeFileSync, unlinkSync } from "fs";
 import { join, resolve, basename } from "path";
+const images = require("images");
+
 let sharp = require("sharp")
 let potrace = require("potrace")
 
@@ -40,20 +42,30 @@ function walkPathAndProcessImages({srcPath, destDirName, baseImgName}) {
 
 function processImage(baseImgPath, layerImgPath, outputDir) {
   const name = basename(layerImgPath);
+  const _mergedImagePath = join(outputDir, "_" + name)
   const mergedImagePath = join(outputDir, name)
   const svgPath = join(outputDir, name.replace(".png", ".svg"))
 
-  sharp(baseImgPath)
-    .flatten( { background: '#ff6600' } )
-    .composite([{ input: 'overlay.png', gravity: 'southeast' }])
-    // .grayscale()
-      //  .png()
-       .toFile(mergedImagePath);
+  console.log(baseImgPath, layerImgPath, outputDir)
 
-  potrace.trace(mergedImagePath, function(err, svg) {
-    if (err) throw err;
-    writeFileSync(svgPath, svg);
-  });
+  images(baseImgPath).draw(images(layerImgPath), 0, 0).save(_mergedImagePath)
+
+  sharp(_mergedImagePath)
+    .modulate({
+      brightness: 0,
+      saturation: 0
+    })
+    .toFile(mergedImagePath).then(() => {
+      potrace.trace(mergedImagePath, function(err, svg) {
+        if (err) throw err;
+    
+        writeFileSync(svgPath, svg);
+      });
+    }).then(() => {
+      unlinkSync(_mergedImagePath);
+      unlinkSync(mergedImagePath);
+    });
 }
 
 walkPathAndProcessImages(conf);
+
