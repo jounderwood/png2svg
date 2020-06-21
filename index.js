@@ -15,7 +15,6 @@ const conf = {
 
 function walkPathAndProcessImages({srcPath, destDirName, baseImgName}) {
   srcPath = resolve(srcPath);
-  let paths = [];
 
   readdirSync(srcPath).forEach(subDir => {
     subDir = join(srcPath, subDir);
